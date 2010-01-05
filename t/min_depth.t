@@ -28,14 +28,8 @@ my @orig =
 
 my @exp_keys =
    (
-   [ qw/ 0 / ],
-   [ qw/ 1 / ],
-   [ qw/ 2 0 / ],
-   [ qw/ 2 1 / ],
    [ qw/ 3 0 0 / ],
    [ qw/ 3 0 1 aaa / ],
-   [ qw/ 4 aab / ],
-   [ qw/ 4 aac / ],
    [ qw/ 4 aad aae aaf 0 0 / ],
    [ qw/ 4 aad aag / ],
    [ qw/ 4 aah 0 / ],
@@ -44,11 +38,23 @@ my @exp_keys =
    [ qw/ 4 aaj 1 / ],
    [ qw/ 4 aaj 2 aak / ],
    [ qw/ 4 aaj 3 aal / ],
-   [ qw/ 4 aao / ],
-   [ qw/ 5 / ],
+   );
+
+my @exp_values =
+   (
+   115,
+   116,
+   119,
+   120,
+   121,
+   122,
+   123,
+   124,
+   125,
+   126,
    );
    
-my $walker = Data::Leaf::Walker->new( \@orig );
+my $walker = Data::Leaf::Walker->new( \@orig, min_depth => 3 );
 
 EACH:
    {
@@ -70,7 +76,7 @@ EACH:
 
    @values = sort @values;
 
-   is_deeply( \@values, [ 111 .. 128 ], "each - values" );
+   is_deeply( \@values, \@exp_values, "each - values" );
    
    }
 
@@ -89,6 +95,6 @@ VALUES:
    {
 
    my @values = sort $walker->values;
-   is_deeply( \@values, [ 111 .. 128 ], "values" );
+   is_deeply( \@values, \@exp_values, "values" );
 
    }
