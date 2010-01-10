@@ -9,11 +9,11 @@ Data::Leaf::Walker - Walk the leaves of arbitrarily deep nested data structures.
 
 =head1 VERSION
 
-Version 0.10
+Version 0.20
 
 =cut
 
-our $VERSION = '0.10';
+our $VERSION = '0.20';
 
 =head1 SYNOPSIS
 
@@ -83,13 +83,16 @@ than C<min_depth> keys deep.
 sub new
    {
    my ( $class, $data, %opts ) = @_;
-   return bless
+   my $self = bless
       {
-      _data       => $data,
-      _data_stack => [],
-      _key_path   => [],
-      _opts       => \%opts,
+      _data          => $data,
+      _data_stack    => [],
+      _key_path      => [],
+      _array_tracker => {},
+      _opts          => {},
       }, $class;
+   $self->opts( %opts );
+   return $self;
    }
 
 =head2 each()
@@ -311,6 +314,69 @@ sub exists
    
    }
 
+=head2 reset()
+
+Resets the current iterators. This is faster than using the C<keys()> or
+C<values()> methods to do an iterator reset.
+
+   ## set the max depth one above the bottom, to get the twig structures
+   $key_path = $walker->each;
+   $walker->opts( max_depth => @{ $key_path } - 1 );
+   $walker->reset;
+   @twigs = $walker->values;
+
+=cut
+
+sub reset
+   {
+   my ( $self ) = @_;
+   
+   for my $data ( @{ $self->{_data_stack} } )
+      {
+      if ( ref $data eq 'HASH' )
+         {
+         CORE::keys %{ $data };
+         }
+      }
+
+   %{ $self->{_array_tracker} } = ();
+   @{ $self->{_data_stack} }    = ();
+   @{ $self->{_key_path} }      = ();
+   
+   return;
+   }
+
+=head2 opts()
+
+Change the values of the constructor options. Only given options are affected.
+See C<new()> for a description of the options. Returns the current option hash
+after changes are applied.
+
+   ## change the max_depth
+   $walker->opts( max_depth => 3 );
+   
+   ## get the current options
+   %opts = $walker->opts;
+
+=cut
+
+sub opts
+   {
+   my ( $self, %opts ) = @_;
+
+   if ( CORE::keys %opts )
+      {
+
+      for my $key ( CORE::keys %opts )
+         {
+         $self->{_opts}{$key} = $opts{$key};
+         }
+
+      }
+
+   return %{ $self->{_opts} };
+   }
+
 sub _iterate
    {
    my ( $self ) = @_;
@@ -319,7 +385,7 @@ sub _iterate
    my $data = ${ $self->{_data_stack} }[-1];
    
    ## iterate on the stack top
-   my ( $key, $val ) = _each($data);
+   my ( $key, $val ) = $self->_each($data);
 
    ## if we're at the end of the stack top
    if ( ! defined $key )
@@ -372,13 +438,9 @@ sub _iterate
    return wantarray ? ( $key_path, $val ) : $key_path;   
    }
 
-{
-   
-my %array_tracker;
-   
 sub _each
    {
-   my ( $data ) = @_;
+   my ( $self, $data ) = @_;
    
    if ( ref $data eq 'HASH' )
       {
@@ -386,16 +448,17 @@ sub _each
       }
    elsif ( ref $data eq 'ARRAY' )
       {
-      $array_tracker{ $data } ||= 0;
-      if ( exists $data->[ $array_tracker{ $data } ] )
+      my $array_tracker = $self->{_array_tracker};
+      $array_tracker->{ $data } ||= 0;
+      if ( $array_tracker->{ $data } <= $#{ $data } )
          {
-         my $index = $array_tracker{ $data };
-         ++ $array_tracker{ $data };
+         my $index = $array_tracker->{ $data };
+         ++ $array_tracker->{ $data };
          return( $index, $data->[ $index ] );
          }
       else
          {
-         $array_tracker{ $data } = 0;
+         $array_tracker->{ $data } = 0;
          return;
          }
       
@@ -406,8 +469,6 @@ sub _each
       }
    
    }
-   
-}
 
 =head1 AUTHOR
 
@@ -433,7 +494,7 @@ instance to access the data structure, you should be fine.
 
 =over 3
 
-=item * add max_depth, min_depth, type and twig limiters for C<each>, C<keys>, C<values>
+=item * add type and twig limiters for C<each>, C<keys>, C<values>
 
 =item * optional autovivification (Data::Peek, Scalar::Util, String::Numeric)
 

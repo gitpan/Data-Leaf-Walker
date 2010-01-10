@@ -1,6 +1,6 @@
 ---
 name: Data-Leaf-Walker
-version: 0.10
+version: 0.20
 author:
   - 'Dan Boorstein <danboo@cpan.org>'
 abstract: Walk the leaves of arbitrarily deep nested data structures.
@@ -15,7 +15,7 @@ configure_requires:
 provides:
   Data::Leaf::Walker:
     file: lib/Data/Leaf/Walker.pm
-    version: 0.10
+    version: 0.20
 generated_by: Module::Build version 0.35
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
